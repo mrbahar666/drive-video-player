@@ -29,7 +29,7 @@ try{
 player=new AVPlayer({
 container:document.getElementById('player'),enableWorker:true,enableHardware:false,enableWebCodecs:false,enableWebGPU:false,preLoadTime:2,checkUseMSE:()=>false,
 ui:{hasFolder:false,hasHeader:false},
-getWasm(type,codec){let path;if(type==='decoder'){path={173:'decode/hevc-simd.wasm',86018:'decode/aac-simd.wasm'}[codec];}else if(type==='resampler'){path='resample/resample-simd.wasm';}else if(type==='stretchpitcher'){path='stretchpitch/stretchpitch-simd.wasm';}if(!path)throw new Error('Unsupported codec '+codec);log('Loading '+path);return BASE+path;}
+getWasm(type,codec){let path;if(type==='decoder'){path={173:'decode/hevc-simd.wasm',86018:'decode/aac-simd.wasm',61:'decode/png-simd.wasm'}[codec];}else if(type==='resampler'){path='resample/resample-simd.wasm';}else if(type==='stretchpitcher'){path='stretchpitch/stretchpitch-simd.wasm';}if(!path)throw new Error('Unsupported codec '+codec);log('Loading '+path);return BASE+path;}
 });
 for(const event of ['loading','loaded','playing','played','paused','seeking','seeked','firstVideoRendered','firstAudioRendered','error','timeout'])player.on(event,(...args)=>log(event+' '+args.map(String).join(' ')));
 player.on('firstVideoRendered',()=>setStatus('Synthetic HEVC video is decoding.'));
