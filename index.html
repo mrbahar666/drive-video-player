@@ -1,15 +1,84 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Drive Player · Playback Test</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="no-referrer"><title>Drive Player</title>
 <style>
-:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0a0d14;color:#edf2fc}*{box-sizing:border-box}body{margin:0}main{max-width:1120px;margin:auto;padding:28px 20px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:36px}.brand{font-size:20px;font-weight:750}.brand span{color:#71e4b5}.badge{border:1px solid #324054;border-radius:99px;padding:7px 11px;font-size:12px;color:#b8c7dc}h1{font-size:clamp(26px,5vw,44px);letter-spacing:-.04em;margin:0 0 12px}.muted{color:#9babbe;line-height:1.6}.frame{border:1px solid #29364b;border-radius:20px;overflow:hidden;background:#000;margin-top:24px;box-shadow:0 25px 80px #0005}#player{width:100%;height:clamp(230px,54vw,600px);position:relative}.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:16px;background:#131a26}button,a.button{font:inherit;border:0;border-radius:10px;padding:11px 18px;cursor:pointer;background:#78edbf;color:#08251b;font-weight:700;text-decoration:none;display:inline-block}button.secondary,a.button.secondary{background:#273247;color:#e5edf9}button:disabled{opacity:.5;cursor:wait}#status{flex:1;min-width:160px;font-size:14px;color:#b7c6da}.note{margin-top:20px;padding:16px 20px;border-left:3px solid #667c9d;background:#111925;border-radius:0 10px 10px 0;font-size:14px;line-height:1.6}.details{display:flex;flex-wrap:wrap;gap:20px;font-size:13px;color:#8d9fb7;margin-top:16px}details{margin-top:20px;font-size:13px;color:#9cabc1}pre{white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}footer{padding-top:36px;font-size:12px;color:#8191a8;line-height:1.8}a{color:#a9d8ff}.source{margin-top:24px}@media(max-width:600px){main{padding:20px 12px}header{margin-bottom:24px}.badge{font-size:10px}.bar{padding:12px;gap:8px}button{padding:10px 14px}#status{flex-basis:100%}.frame{border-radius:12px}}
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0a0d14;color:#edf2fc}*{box-sizing:border-box}body{margin:0}main{max-width:1120px;margin:auto;padding:28px 20px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:36px}.brand{font-size:20px;font-weight:750}.brand span{color:#71e4b5}.badge{border:1px solid #324054;border-radius:99px;padding:7px 11px;font-size:12px;color:#b8c7dc}h1{font-size:clamp(26px,5vw,44px);letter-spacing:-.04em;margin:0 0 12px}.muted{color:#9babbe;line-height:1.6}
+.frame{border:1px solid #29364b;border-radius:20px;overflow:hidden;background:#000;margin-top:24px;box-shadow:0 25px 80px #0005}
+#player{width:100%;aspect-ratio:12/5;max-height:600px;position:relative;background:#000}
+#player canvas{width:100%!important;height:100%!important}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5}
+.overlay[hidden]{display:none}
+#bigplay{width:76px;height:76px;border-radius:50%;border:0;background:#78edbfcc;color:#08251b;font-size:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+#loading{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:#000c;color:#cfe0f5;font-size:14px;z-index:6;text-align:center;padding:16px}
+#loading[hidden]{display:none}
+.spinner{width:34px;height:34px;border-radius:50%;border:3px solid #324054;border-top-color:#78edbf;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bar{background:#131a26;padding:12px 14px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+.seekrow{display:flex;align-items:center;gap:10px}
+#seekbar{flex:1;accent-color:#78edbf;height:28px;min-width:0;touch-action:manipulation}
+#time{font-size:13px;color:#b7c6da;white-space:nowrap;font-variant-numeric:tabular-nums}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+button,a.button{font:inherit;border:0;border-radius:10px;padding:11px 14px;cursor:pointer;background:#78edbf;color:#08251b;font-weight:700;text-decoration:none;display:inline-block;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button.secondary,a.button.secondary{background:#273247;color:#e5edf9}
+button.icon{min-width:48px;min-height:48px;padding:10px 12px;font-size:18px}
+button:disabled{opacity:.45;cursor:wait}
+#playpause{min-width:56px}
+#vol{width:96px;accent-color:#78edbf;height:28px}
+#audioBtn{margin-left:auto}
+#tracks{display:none;gap:8px;flex-wrap:wrap}
+#tracks.open{display:flex}
+#tracks button{padding:9px 14px;font-size:14px}
+#tracks button.active{background:#78edbf;color:#08251b}
+#status{font-size:14px;color:#b7c6da;min-height:20px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.tools button,.tools a.button{padding:9px 13px;font-size:14px}
+.note{margin-top:20px;padding:16px 20px;border-left:3px solid #667c9d;background:#111925;border-radius:0 10px 10px 0;font-size:14px;line-height:1.6}.details{display:flex;flex-wrap:wrap;gap:20px;font-size:13px;color:#8d9fb7;margin-top:16px}details{margin-top:20px;font-size:13px;color:#9cabc1}pre{white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}footer{padding-top:36px;font-size:12px;color:#8191a8;line-height:1.8}a{color:#a9d8ff}
+.frame:fullscreen,.frame:-webkit-full-screen{display:flex;flex-direction:column;border-radius:0;border:0}
+.frame:fullscreen #player,.frame:-webkit-full-screen #player{flex:1;aspect-ratio:auto;max-height:none}
+.frame.theater{position:fixed;inset:0;z-index:9999;margin:0;border-radius:0;border:0;display:flex;flex-direction:column}
+.frame.theater #player{flex:1;aspect-ratio:auto;max-height:none}
+@media(max-width:640px){
+main{display:flex;flex-direction:column;padding:0 0 24px}
+header{order:0;margin:0;padding:14px 14px 0}
+header .badge{font-size:10px;padding:5px 9px}
+.frame{order:1;margin:12px 0 0;border-radius:0;border-left:0;border-right:0;box-shadow:none;position:sticky;top:0;z-index:20}
+h1{order:2;font-size:21px;margin:16px 14px 0}
+.muted{order:3;margin:8px 14px 0;font-size:14px}
+.details{order:4;margin:14px 14px 0}
+.note{order:5;margin:14px 14px 0}
+.tools{order:6;margin:14px 14px 0}
+details{order:7;margin:14px 14px 0}
+footer{order:8;margin:0 14px}
+#vol{width:72px}
+#audioBtn{margin-left:0}
+.controls{gap:6px}
+}
 </style></head><body><main>
-<header><div class="brand"><span>▶</span> Drive Player</div><span class="badge">GITHUB PAGES · PLAYBACK TEST</span></header>
-<h1>Your video. Straight from Drive.</h1><p class="muted">The player is published. The video now streams through the Shizen server proxy.</p>
-<section class="frame"><div id="player"></div><div class="bar"><button id="start">▶ Play video</button><button id="probe" class="secondary">Check source</button><button id="pause" class="secondary" disabled>Pause</button><button id="seek" class="secondary" disabled>Test seek: 5 min</button><span id="status" role="status" aria-live="polite">Ready to test playback.</span></div></section>
+<header><div class="brand"><span>▶</span> Drive Player</div><span class="badge">GITHUB PAGES</span></header>
+<h1>Your video. Straight from Drive.</h1><p class="muted">Tap play and watch. Use fullscreen for the full picture.</p>
+<section class="frame" id="frame">
+<div id="player">
+<div class="overlay" id="bigplaywrap"><button id="bigplay" aria-label="Play">▶</button></div>
+<div id="loading" hidden><div class="spinner"></div><div id="loadingtext">Opening the video…</div></div>
+</div>
+<div class="bar">
+<div class="seekrow"><input type="range" id="seekbar" min="0" max="0" step="1000" value="0" aria-label="Seek"><span id="time">00:00 / 00:00</span></div>
+<div class="controls">
+<button id="playpause" class="icon" aria-label="Play or pause">▶</button>
+<button id="back" class="icon secondary" aria-label="Back 10 seconds">−10s</button>
+<button id="fwd" class="icon secondary" aria-label="Forward 10 seconds">+10s</button>
+<button id="mute" class="icon secondary" aria-label="Mute or unmute">🔊</button>
+<input type="range" id="vol" min="0" max="100" step="1" value="100" aria-label="Volume">
+<button id="audioBtn" class="secondary" disabled>🌐 Audio</button>
+<button id="fs" class="icon secondary" aria-label="Fullscreen">⛶</button>
+</div>
+<div id="tracks" aria-label="Audio language"></div>
+<div id="status" role="status" aria-live="polite">Ready to play.</div>
+</div>
+</section>
 <div class="details"><span>HEVC video · MKV</span><span>Hindi · Tamil · Telugu · Kannada audio</span><span>Original file stays in Google Drive</span></div>
-<div class="note" id="notice">Streaming through a fixed-file proxy on the Shizen server (this one public Drive file only). Verified playing in desktop Chromium. A compatible browser is also required.</div>
-<div class="source"><a class="button secondary" href="https://drive.google.com/file/d/1VVoODfmu8_rsoHMA90NlPbYmbZJHAoPZ/view" target="_blank" rel="noopener noreferrer">Open source in Drive ↗</a></div>
+<div class="note" id="notice">Streaming through a fixed-file proxy on the Shizen server (this one public Drive file only). Verified playing in desktop Chromium. Mobile controls: play, seek, volume, audio language, fullscreen.</div>
+<div class="tools"><button id="probe" class="secondary">Check source</button><button id="seek5" class="secondary" disabled>⏩ Seek 5:00</button><a class="button secondary" href="https://drive.google.com/file/d/1VVoODfmu8_rsoHMA90NlPbYmbZJHAoPZ/view" target="_blank" rel="noopener noreferrer">Open source in Drive ↗</a></div>
 <details><summary>Playback diagnostics</summary><pre id="events">Ready</pre><pre id="stats"></pre></details>
 <footer>Player engine: <a href="https://github.com/zhaohappy/libmedia">libmedia 1.3.1</a>, LGPL-3.0-or-later. Unmodified JavaScript and decoder modules are loaded from jsDelivr. <a href="https://github.com/mrbahar666/drive-video-player">Source code</a><br>Google Drive controls file access and download quotas. This is on-demand playback, not a live broadcast.</footer>
 </main>
@@ -18,29 +87,64 @@
 'use strict';
 const SOURCE='https://www.shizenspa.com/drive-video';
 const BASE='https://cdn.jsdelivr.net/gh/zhaohappy/libmedia@1.3.1/dist/';
-const statusBox=document.getElementById('status'),logBox=document.getElementById('events'),statsBox=document.getElementById('stats'),start=document.getElementById('start'),pause=document.getElementById('pause'),seek=document.getElementById('seek');
+const SIMD=(()=>{try{return WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,4,1,96,0,0,3,2,1,0,10,9,1,7,0,65,0,253,15,26,11]));}catch(e){return false;}})();
+const SUF=SIMD?'-simd':'';
+const frame=document.getElementById('frame'),playerBox=document.getElementById('player'),statusBox=document.getElementById('status'),logBox=document.getElementById('events'),statsBox=document.getElementById('stats');
+const playpause=document.getElementById('playpause'),bigplay=document.getElementById('bigplay'),bigwrap=document.getElementById('bigplaywrap'),loading=document.getElementById('loading'),loadingtext=document.getElementById('loadingtext');
+const seekbar=document.getElementById('seekbar'),timeBox=document.getElementById('time'),vol=document.getElementById('vol'),mute=document.getElementById('mute'),fs=document.getElementById('fs'),audioBtn=document.getElementById('audioBtn'),tracks=document.getElementById('tracks');
 const log=value=>{logBox.textContent+='\n'+String(value);console.log(value)};
 const setStatus=s=>statusBox.textContent=s;
-let player, loaded=false, busy=false;
-function fail(e){setStatus('Playback could not start. See diagnostics or open the original in Drive.');log('Error: '+(e&&e.stack||e&&e.message||e));start.disabled=false;busy=false;}
+const fmt=ms=>{if(!isFinite(ms)||ms<0)ms=0;const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(ss).padStart(2,'0');};
+let player, loaded=false, busy=false, playing=false, dragging=false, duration=0, lastVol=1, currentAudioId=-1;
+function showLoading(text){loadingtext.textContent=text;loading.hidden=false;}
+function hideLoading(){loading.hidden=true;}
+function setPlaying(p){playing=p;playpause.textContent=p?'⏸':'▶';bigwrap.hidden=p;}
+function fail(e){hideLoading();setStatus('Playback could not start. See diagnostics or open the original in Drive.');log('Error: '+(e&&e.stack||e&&e.message||e));busy=false;}
 window.addEventListener('error',e=>log('Exception: '+e.message));
 window.addEventListener('unhandledrejection',e=>fail(e.reason));
 try{
 player=new AVPlayer({
-container:document.getElementById('player'),enableWorker:true,enableHardware:false,enableWebCodecs:false,enableWebGPU:false,preLoadTime:2,checkUseMSE:()=>false,
+container:playerBox,enableWorker:true,enableHardware:false,enableWebCodecs:false,enableWebGPU:false,preLoadTime:2,checkUseMSE:()=>false,
 ui:{hasFolder:false,hasHeader:false},
-getWasm(type,codec){let path;if(type==='decoder'){path={173:'decode/hevc-simd.wasm',86018:'decode/aac-simd.wasm',61:'decode/png-simd.wasm'}[codec];}else if(type==='resampler'){path='resample/resample-simd.wasm';}else if(type==='stretchpitcher'){path='stretchpitch/stretchpitch-simd.wasm';}if(!path)throw new Error('Unsupported codec '+codec);log('Loading '+path);return BASE+path;}
+getWasm(type,codec){let path;if(type==='decoder'){path={173:'decode/hevc'+SUF+'.wasm',86018:'decode/aac'+SUF+'.wasm',61:'decode/png'+SUF+'.wasm'}[codec];}else if(type==='resampler'){path='resample/resample'+SUF+'.wasm';}else if(type==='stretchpitcher'){path='stretchpitch/stretchpitch'+SUF+'.wasm';}if(!path)throw new Error('Unsupported codec '+codec);log('Loading '+path);return BASE+path;}
 });
 for(const event of ['loading','loaded','playing','played','paused','seeking','seeked','firstVideoRendered','firstAudioRendered','error','timeout'])player.on(event,(...args)=>log(event+' '+args.map(String).join(' ')));
-player.on('firstVideoRendered',()=>setStatus('Video is playing from Google Drive.'));
-player.on('paused',()=>setStatus('Paused.'));
+player.on('loading',()=>showLoading('Opening the video and loading decoders…'));
+player.on('loaded',()=>{duration=Number(player.getDuration()||0);seekbar.max=String(duration);timeBox.textContent=fmt(0)+' / '+fmt(duration);document.getElementById('seek5').disabled=false;buildAudioTracks();});
+player.on('firstVideoRendered',()=>{hideLoading();setStatus('Video is playing from Google Drive.');});
+player.on('firstAudioRendered',()=>log('Audio is rendering.'));
+player.on('playing',()=>{setPlaying(true);setStatus('Video is playing from Google Drive.');});
+player.on('played',()=>{setPlaying(true);setStatus('Video is playing from Google Drive.');});
+player.on('paused',()=>{setPlaying(false);setStatus('Paused.');});
 player.on('seeking',()=>setStatus('Seeking through the Drive source…'));
 player.on('seeked',()=>setStatus('Seek complete.'));
 player.on('error',fail);
 }catch(e){fail(e);}
-start.onclick=async()=>{if(busy||!player)return;busy=true;start.disabled=true;setStatus('Opening the Drive source and loading decoders…');try{if(!loaded){await player.load(SOURCE,{http:{credentials:'omit',referrerPolicy:'no-referrer'}});loaded=true;log('Duration milliseconds: '+player.getDuration());}await player.play();start.textContent='▶ Resume';pause.disabled=false;seek.disabled=false;}catch(e){fail(e);}finally{busy=false;start.disabled=false;}};
+async function startPlayback(){if(busy||!player)return;busy=true;showLoading(loaded?'Resuming…':'Opening the video and loading decoders…');setStatus('Opening the Drive source and loading decoders…');try{if(!loaded){await player.load(SOURCE,{http:{credentials:'omit',referrerPolicy:'no-referrer'}});loaded=true;log('Duration milliseconds: '+player.getDuration());}await player.play();}catch(e){fail(e);}finally{busy=false;}}
+async function togglePlay(){if(!player||busy)return;if(!loaded||!playing){await startPlayback();return;}busy=true;try{await player.pause();}catch(e){fail(e);}finally{busy=false;}}
+playpause.onclick=togglePlay;
+bigplay.onclick=e=>{e.stopPropagation();togglePlay();};
+document.getElementById('back').onclick=async()=>{if(!player||!loaded||busy)return;busy=true;try{await player.seek(BigInt(Math.max(0,Math.round(Number(player.currentTime))-10000)));}catch(e){fail(e);}finally{busy=false;}};
+document.getElementById('fwd').onclick=async()=>{if(!player||!loaded||busy)return;busy=true;try{await player.seek(BigInt(Math.min(duration,Math.round(Number(player.currentTime))+10000)));}catch(e){fail(e);}finally{busy=false;}};
+document.getElementById('seek5').onclick=async()=>{if(!player||!loaded||busy)return;busy=true;try{await player.seek(300000n);}catch(e){fail(e);}finally{busy=false;}};
+seekbar.addEventListener('pointerdown',()=>{dragging=true;});
+seekbar.addEventListener('pointerup',()=>{dragging=false;});
+seekbar.addEventListener('input',()=>{timeBox.textContent=fmt(Number(seekbar.value))+' / '+fmt(duration);});
+seekbar.addEventListener('change',async()=>{if(!player||!loaded||busy)return;busy=true;try{await player.seek(BigInt(Number(seekbar.value)));}catch(e){fail(e);}finally{busy=false;}});
+function setVolUI(v){vol.value=String(Math.round(v*100));mute.textContent=v===0?'🔇':'🔊';}
+vol.addEventListener('input',()=>{if(!player)return;const v=Number(vol.value)/100;try{player.setVolume(v);}catch(e){log('Volume: '+e.message);}if(v>0)lastVol=v;setVolUI(v);});
+mute.onclick=()=>{if(!player)return;let v;try{v=player.getVolume();}catch(e){v=1;}const next=v===0?lastVol:0;try{player.setVolume(next);}catch(e){log('Volume: '+e.message);}if(next>0)lastVol=next;setVolUI(next);};
+const LANGS={hin:'Hindi',tam:'Tamil',tel:'Telugu',kan:'Kannada'};
+function buildAudioTracks(){try{const list=(player.getStreams()||[]).filter(s=>s&&((s.codecType===1)||s.codec===86018)&&s.metadata&&(s.metadata.language||s.metadata.title));if(!list.length)return;currentAudioId=player.getSelectedAudioStreamId();tracks.innerHTML='';list.forEach(s=>{const lang=(s.metadata.language||'').toLowerCase();const name=LANGS[lang]||s.metadata.title||('Audio '+(s.id+1));const b=document.createElement('button');b.textContent=name;b.className=s.id===currentAudioId?'active':'';b.onclick=async()=>{try{await player.selectAudio(s.id);currentAudioId=s.id;[...tracks.children].forEach(c=>c.classList.remove('active'));b.classList.add('active');setStatus('Audio: '+name+'.');log('Audio track selected: '+name);}catch(e){log('Audio switch: '+(e&&e.message||e));}};tracks.appendChild(b);});audioBtn.disabled=false;}catch(e){log('Audio tracks: '+(e&&e.message||e));}}
+audioBtn.onclick=()=>{tracks.classList.toggle('open');};
+function isFullscreen(){return !!(document.fullscreenElement||document.webkitFullscreenElement)||frame.classList.contains('theater');}
+function updateFsBtn(){fs.textContent=isFullscreen()?'✕':'⛶';}
+async function toggleFullscreen(){try{if(document.fullscreenElement||document.webkitFullscreenElement){if(document.exitFullscreen)await document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen();frame.classList.remove('theater');}else if(frame.requestFullscreen){await frame.requestFullscreen();}else if(frame.webkitRequestFullscreen){frame.webkitRequestFullscreen();}else{frame.classList.toggle('theater');document.body.style.overflow=frame.classList.contains('theater')?'hidden':'';}}catch(e){log('Fullscreen: '+(e&&e.message||e));frame.classList.toggle('theater');document.body.style.overflow=frame.classList.contains('theater')?'hidden':'';}setTimeout(()=>{try{player&&player.resize(playerBox.clientWidth,playerBox.clientHeight);}catch{}updateFsBtn();},150);}
+fs.onclick=toggleFullscreen;
+document.addEventListener('fullscreenchange',()=>{setTimeout(()=>{try{player&&player.resize(playerBox.clientWidth,playerBox.clientHeight);}catch{}updateFsBtn();},150);});
+document.addEventListener('webkitfullscreenchange',()=>{setTimeout(()=>{try{player&&player.resize(playerBox.clientWidth,playerBox.clientHeight);}catch{}updateFsBtn();},150);});
+let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{try{player&&loaded&&player.resize(playerBox.clientWidth,playerBox.clientHeight);}catch{}},200);});
+window.addEventListener('orientationchange',()=>{setTimeout(()=>{try{player&&loaded&&player.resize(playerBox.clientWidth,playerBox.clientHeight);}catch{}},300);});
 document.getElementById('probe').onclick=async()=>{const controller=new AbortController();try{log('Checking Drive CORS byte-range response');const response=await fetch(SOURCE,{headers:{Range:'bytes=0-63'},credentials:'omit',referrerPolicy:'no-referrer',signal:controller.signal});log('Source HTTP '+response.status+'; type '+response.headers.get('content-type'));const reader=response.body.getReader();const result=await reader.read();log('Source first bytes: '+Array.from(result.value.slice(0,16)).map(x=>x.toString(16).padStart(2,'0')).join(' '));await reader.cancel();}catch(e){log('Source check: '+e.stack);}finally{controller.abort();}};
-pause.onclick=async()=>{if(!player||busy)return;busy=true;try{await player.pause();}catch(e){fail(e);}finally{busy=false;}};
-seek.onclick=async()=>{if(!player||busy)return;busy=true;try{await player.seek(300000n);}catch(e){fail(e);}finally{busy=false;}};
-setInterval(()=>{try{statsBox.textContent='Playback time (ms): '+player.currentTime+'\n'+JSON.stringify(player.getStats(),(_,v)=>typeof v==='bigint'?v.toString():v,2);}catch{}},1000);
+setInterval(()=>{try{if(!player)return;const t=Number(player.currentTime||0);if(!dragging){seekbar.value=String(Math.min(t,duration||t));}timeBox.textContent=fmt(t)+' / '+fmt(duration);statsBox.textContent='Playback time (ms): '+player.currentTime+'\n'+JSON.stringify(player.getStats(),(_,v)=>typeof v==='bigint'?v.toString():v,2);}catch{}},1000);
 </script></body></html>
