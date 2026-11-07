@@ -25,6 +25,7 @@ button:disabled{opacity:.45;cursor:wait}
 #playpause{min-width:56px}
 #vol{width:96px;accent-color:#78edbf;height:28px}
 #audioBtn{margin-left:auto}
+#fs{min-height:48px;font-size:16px}
 #tracks{display:none;gap:8px;flex-wrap:wrap}
 #tracks.open{display:flex}
 #tracks button{padding:9px 14px;font-size:14px}
@@ -53,11 +54,12 @@ details{order:7;margin:14px 14px 0}
 footer{order:8;margin:0 14px}
 #vol{width:72px}
 #audioBtn{margin-left:0}
+#fs{flex:1}
 .controls{gap:6px}
 }
 </style></head><body><main>
 <header><div class="brand"><span>▶</span> Drive Player</div><span class="badge">GITHUB PAGES</span></header>
-<h1>Your video. Straight from Drive.</h1><p class="muted">Tap play and watch. Use fullscreen for the full picture.</p>
+<h1>Your video. Straight from Drive.</h1><p class="muted">Tap play and watch. First play takes about 20–30 seconds while the decoder downloads — then use fullscreen for the full picture.</p>
 <section class="frame" id="frame">
 <div id="player">
 <div class="overlay" id="bigplaywrap"><button id="bigplay" aria-label="Play">▶</button></div>
@@ -72,7 +74,7 @@ footer{order:8;margin:0 14px}
 <button id="mute" class="icon secondary" aria-label="Mute or unmute">🔊</button>
 <input type="range" id="vol" min="0" max="100" step="1" value="100" aria-label="Volume">
 <button id="audioBtn" class="secondary" disabled>🌐 Audio</button>
-<button id="fs" class="icon secondary" aria-label="Fullscreen">⛶</button>
+<button id="fs" class="secondary" aria-label="Fullscreen">⛶ Fullscreen</button>
 </div>
 <div id="tracks" aria-label="Audio language"></div>
 <div id="status" role="status" aria-live="polite">Ready to play.</div>
@@ -97,7 +99,7 @@ const seekbar=document.getElementById('seekbar'),timeBox=document.getElementById
 const log=value=>{logBox.textContent+='\n'+String(value);console.log(value)};
 const setStatus=s=>statusBox.textContent=s;
 const fmt=ms=>{if(!isFinite(ms)||ms<0)ms=0;const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(ss).padStart(2,'0');};
-let player, loaded=false, busy=false, playing=false, dragging=false, duration=0, lastVol=1, currentAudioId=-1;
+let player, loaded=false, busy=false, playing=false, dragging=false, duration=0, lastVol=1, currentAudioId=-1, userSetVol=false;
 function showLoading(text){loadingtext.textContent=text;loading.hidden=false;}
 function hideLoading(){loading.hidden=true;}
 function setPlaying(p){playing=p;playpause.textContent=p?'⏸':'▶';bigwrap.hidden=p;}
@@ -111,8 +113,8 @@ ui:{hasFolder:false,hasHeader:false},
 getWasm(type,codec){let path;if(type==='decoder'){path={173:'decode/hevc'+SUF+'.wasm',86018:'decode/aac'+SUF+'.wasm',61:'decode/png'+SUF+'.wasm'}[codec];}else if(type==='resampler'){path='resample/resample'+SUF+'.wasm';}else if(type==='stretchpitcher'){path='stretchpitch/stretchpitch'+SUF+'.wasm';}if(!path)throw new Error('Unsupported codec '+codec);log('Loading '+path);return BASE+path;}
 });
 for(const event of ['loading','loaded','playing','played','paused','seeking','seeked','firstVideoRendered','firstAudioRendered','error','timeout'])player.on(event,(...args)=>log(event+' '+args.map(String).join(' ')));
-player.on('loading',()=>showLoading('Opening the video and loading decoders…'));
-player.on('loaded',()=>{duration=Number(player.getDuration()||0);seekbar.max=String(duration);timeBox.textContent=fmt(0)+' / '+fmt(duration);document.getElementById('seek5').disabled=false;buildAudioTracks();});
+player.on('loading',()=>showLoading('Opening the video… first play downloads the decoder (about 20–30 seconds on mobile data). Please wait.'));
+player.on('loaded',()=>{duration=Number(player.getDuration()||0);seekbar.max=String(duration);timeBox.textContent=fmt(0)+' / '+fmt(duration);document.getElementById('seek5').disabled=false;try{if(!userSetVol){player.setVolume(1);setVolUI(1);}else{setVolUI(player.getVolume());}log('Audio volume: '+player.getVolume());}catch(e){log('Volume: '+(e&&e.message||e));}buildAudioTracks();});
 player.on('firstVideoRendered',()=>{hideLoading();setStatus('Video is playing from Google Drive.');});
 player.on('firstAudioRendered',()=>log('Audio is rendering.'));
 player.on('playing',()=>{setPlaying(true);setStatus('Video is playing from Google Drive.');});
@@ -122,7 +124,7 @@ player.on('seeking',()=>setStatus('Seeking through the Drive source…'));
 player.on('seeked',()=>setStatus('Seek complete.'));
 player.on('error',fail);
 }catch(e){fail(e);}
-async function startPlayback(){if(busy||!player)return;busy=true;showLoading(loaded?'Resuming…':'Opening the video and loading decoders…');setStatus('Opening the Drive source and loading decoders…');try{if(!loaded){await player.load(SOURCE,{http:{credentials:'omit',referrerPolicy:'no-referrer'}});loaded=true;log('Duration milliseconds: '+player.getDuration());}await player.play();}catch(e){fail(e);}finally{busy=false;}}
+async function startPlayback(){if(busy||!player)return;busy=true;showLoading(loaded?'Resuming…':'Opening the video… first play downloads the decoder (about 20–30 seconds on mobile data). Please wait.');setStatus('Opening the Drive source and loading decoders…');try{if(!loaded){await player.load(SOURCE,{http:{credentials:'omit',referrerPolicy:'no-referrer'}});loaded=true;log('Duration milliseconds: '+player.getDuration());}await player.play();}catch(e){fail(e);}finally{busy=false;}}
 async function togglePlay(){if(!player||busy)return;if(!loaded||!playing){await startPlayback();return;}busy=true;try{await player.pause();}catch(e){fail(e);}finally{busy=false;}}
 playpause.onclick=togglePlay;
 bigplay.onclick=e=>{e.stopPropagation();togglePlay();};
@@ -134,13 +136,13 @@ seekbar.addEventListener('pointerup',()=>{dragging=false;});
 seekbar.addEventListener('input',()=>{timeBox.textContent=fmt(Number(seekbar.value))+' / '+fmt(duration);});
 seekbar.addEventListener('change',async()=>{if(!player||!loaded||busy)return;busy=true;try{await player.seek(BigInt(Number(seekbar.value)));}catch(e){fail(e);}finally{busy=false;}});
 function setVolUI(v){vol.value=String(Math.round(v*100));mute.textContent=v===0?'🔇':'🔊';}
-vol.addEventListener('input',()=>{if(!player)return;const v=Number(vol.value)/100;try{player.setVolume(v);}catch(e){log('Volume: '+e.message);}if(v>0)lastVol=v;setVolUI(v);});
-mute.onclick=()=>{if(!player)return;let v;try{v=player.getVolume();}catch(e){v=1;}const next=v===0?lastVol:0;try{player.setVolume(next);}catch(e){log('Volume: '+e.message);}if(next>0)lastVol=next;setVolUI(next);};
+vol.addEventListener('input',()=>{userSetVol=true;if(!player)return;const v=Number(vol.value)/100;try{player.setVolume(v);}catch(e){log('Volume: '+e.message);}if(v>0)lastVol=v;setVolUI(v);});
+mute.onclick=()=>{userSetVol=true;if(!player)return;let v;try{v=player.getVolume();}catch(e){v=1;}const next=v===0?lastVol:0;try{player.setVolume(next);}catch(e){log('Volume: '+e.message);}if(next>0)lastVol=next;setVolUI(next);};
 const LANGS={hin:'Hindi',tam:'Tamil',tel:'Telugu',kan:'Kannada'};
 function buildAudioTracks(){try{const list=(player.getStreams()||[]).filter(s=>s&&((s.codecType===1)||s.codec===86018)&&s.metadata&&(s.metadata.language||s.metadata.title));if(!list.length)return;currentAudioId=player.getSelectedAudioStreamId();tracks.innerHTML='';list.forEach(s=>{const lang=(s.metadata.language||'').toLowerCase();const name=LANGS[lang]||s.metadata.title||('Audio '+(s.id+1));const b=document.createElement('button');b.textContent=name;b.className=s.id===currentAudioId?'active':'';b.onclick=async()=>{try{await player.selectAudio(s.id);currentAudioId=s.id;[...tracks.children].forEach(c=>c.classList.remove('active'));b.classList.add('active');setStatus('Audio: '+name+'.');log('Audio track selected: '+name);}catch(e){log('Audio switch: '+(e&&e.message||e));}};tracks.appendChild(b);});audioBtn.disabled=false;}catch(e){log('Audio tracks: '+(e&&e.message||e));}}
 audioBtn.onclick=()=>{tracks.classList.toggle('open');};
 function isFullscreen(){return !!(document.fullscreenElement||document.webkitFullscreenElement)||frame.classList.contains('theater');}
-function updateFsBtn(){fs.textContent=isFullscreen()?'✕':'⛶';}
+function updateFsBtn(){fs.textContent=isFullscreen()?'✕ Exit fullscreen':'⛶ Fullscreen';}
 async function toggleFullscreen(){try{if(document.fullscreenElement||document.webkitFullscreenElement){if(document.exitFullscreen)await document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen();frame.classList.remove('theater');}else if(frame.requestFullscreen){await frame.requestFullscreen();}else if(frame.webkitRequestFullscreen){frame.webkitRequestFullscreen();}else{frame.classList.toggle('theater');document.body.style.overflow=frame.classList.contains('theater')?'hidden':'';}}catch(e){log('Fullscreen: '+(e&&e.message||e));frame.classList.toggle('theater');document.body.style.overflow=frame.classList.contains('theater')?'hidden':'';}setTimeout(()=>{try{player&&player.resize(playerBox.clientWidth,playerBox.clientHeight);}catch{}updateFsBtn();},150);}
 fs.onclick=toggleFullscreen;
 document.addEventListener('fullscreenchange',()=>{setTimeout(()=>{try{player&&player.resize(playerBox.clientWidth,playerBox.clientHeight);}catch{}updateFsBtn();},150);});
