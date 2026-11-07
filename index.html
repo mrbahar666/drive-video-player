@@ -6,7 +6,7 @@
 </style></head><body><main>
 <header><div class="brand"><span>▶</span> Drive Player</div><span class="badge">GITHUB PAGES · PLAYBACK TEST</span></header>
 <h1>Your video. Straight from Drive.</h1><p class="muted">A custom browser player for the original MKV file. No full-file download is required to start.</p>
-<section class="frame"><div id="player"></div><div class="bar"><button id="start">▶ Play video</button><button id="pause" class="secondary" disabled>Pause</button><button id="seek" class="secondary" disabled>Test seek: 5 min</button><span id="status" role="status" aria-live="polite">Ready to test playback.</span></div></section>
+<section class="frame"><div id="player"></div><div class="bar"><button id="start">▶ Play video</button><button id="probe" class="secondary">Check source</button><button id="pause" class="secondary" disabled>Pause</button><button id="seek" class="secondary" disabled>Test seek: 5 min</button><span id="status" role="status" aria-live="polite">Ready to test playback.</span></div></section>
 <div class="details"><span>HEVC video · MKV</span><span>Hindi · Tamil · Telugu · Kannada audio</span><span>Original file stays in Google Drive</span></div>
 <div class="note" id="notice">Playback is being verified. This page uses an open-source WebAssembly decoder, so it does not need to wait for Drive's preview processing. Playback still depends on your device and Drive availability.</div>
 <div class="source"><a class="button secondary" href="https://drive.google.com/file/d/1VVoODfmu8_rsoHMA90NlPbYmbZJHAoPZ/view" target="_blank" rel="noopener noreferrer">Open source in Drive ↗</a></div>
@@ -22,7 +22,7 @@ const statusBox=document.getElementById('status'),logBox=document.getElementById
 const log=value=>{logBox.textContent+='\n'+String(value);console.log(value)};
 const setStatus=s=>statusBox.textContent=s;
 let player, loaded=false, busy=false;
-function fail(e){setStatus('Playback could not start. See diagnostics or open the original in Drive.');log('Error: '+(e&&e.message||e));start.disabled=false;busy=false;}
+function fail(e){setStatus('Playback could not start. See diagnostics or open the original in Drive.');log('Error: '+(e&&e.stack||e&&e.message||e));start.disabled=false;busy=false;}
 window.addEventListener('error',e=>log('Exception: '+e.message));
 window.addEventListener('unhandledrejection',e=>fail(e.reason));
 try{
@@ -39,6 +39,7 @@ player.on('seeked',()=>setStatus('Seek complete.'));
 player.on('error',fail);
 }catch(e){fail(e);}
 start.onclick=async()=>{if(busy||!player)return;busy=true;start.disabled=true;setStatus('Opening the Drive source and loading decoders…');try{if(!loaded){await player.load(SOURCE,{http:{credentials:'omit',referrerPolicy:'no-referrer'}});loaded=true;log('Duration milliseconds: '+player.getDuration());}await player.play();start.textContent='▶ Resume';pause.disabled=false;seek.disabled=false;}catch(e){fail(e);}finally{busy=false;start.disabled=false;}};
+document.getElementById('probe').onclick=async()=>{const controller=new AbortController();try{log('Checking Drive CORS byte-range response');const response=await fetch(SOURCE,{headers:{Range:'bytes=0-63'},credentials:'omit',referrerPolicy:'no-referrer',signal:controller.signal});log('Source HTTP '+response.status+'; type '+response.headers.get('content-type'));const reader=response.body.getReader();const result=await reader.read();log('Source first bytes: '+Array.from(result.value.slice(0,16)).map(x=>x.toString(16).padStart(2,'0')).join(' '));await reader.cancel();}catch(e){log('Source check: '+e.stack);}finally{controller.abort();}};
 pause.onclick=async()=>{if(!player||busy)return;busy=true;try{await player.pause();}catch(e){fail(e);}finally{busy=false;}};
 seek.onclick=async()=>{if(!player||busy)return;busy=true;try{await player.seek(300000n);}catch(e){fail(e);}finally{busy=false;}};
 setInterval(()=>{try{statsBox.textContent='Playback time (ms): '+player.currentTime+'\n'+JSON.stringify(player.getStats(),(_,v)=>typeof v==='bigint'?v.toString():v,2);}catch{}},1000);
